@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>是男人就坚持30秒 - 终极挑战版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #gameContainer {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            border: 3px solid #333;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: block;
+            margin: 20px auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #startScreen, #gameOverScreen {
+            padding: 20px;
+        }
+
+        input {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin: 10px;
+            width: 250px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            padding: 12px 40px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        #difficultyInfo {
+            font-size: 18px;
+            color: #f44336;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        #leaderboard {
+            margin-top: 20px;
+            text-align: left;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #leaderboard h3 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .leaderboard-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .player-name {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .score {
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .medal {
+            font-size: 20px;
+            margin-right: 5px;
+        }
+
+        #gameInfo {
+            margin: 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #finalScore {
+            font-size: 24px;
+            color: #667eea;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #28a745 !important;
+        }
+
+        .legendary {
+            color: #ff6b35 !important;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #856404;
+        }
+
+        .instructions p {
+            margin: 5px 0;
+        }
+
+        .difficulty-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .diff-easy { background: #4caf50; color: white; }
+        .diff-normal { background: #ffc107; color: white; }
+        .diff-hard { background: #ff9800; color: white; }
+        .diff-expert { background: #f44336; color: white; }
+        .diff-hell { background: #9c27b0; color: white; animation: pulse 1s infinite; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>🎮 是男人就坚持30秒 - 本地版 🎮</h1>
+        
+        <div id="startScreen">
+            <div class="instructions">
+                <p><strong>游戏规则：</strong></p>
+                <p>⬆️⬇️⬅️➡️ 使用方向键或 WASD 键四向移动</p>
+                <p>🚫 躲避随机运动的智能障碍物</p>
+                <p>⏱️ 坚持30秒达成基础目标！</p>
+                <p>🔥 难度每5秒递增，挑战你的极限！</p>
+                <p style="color: #ff6b35; margin-top: 10px;">💡 本地存储版 - 分数保存在你的浏览器</p>
+            </div>
+            <input type="text" id="playerName" placeholder="请输入你的名字" maxlength="20">
+            <br>
+            <button onclick="startGame()">开始挑战</button>
+            <div id="leaderboard"></div>
+        </div>
+
+        <div id="gameScreen" class="hidden">
+            <div id="timer">0.00秒</div>
+            <div id="difficultyInfo">难度: <span id="diffLevel" class="difficulty-indicator diff-easy">简单</span></div>
+            <div id="gameInfo">使用 ↑↓←→ 或 WASD 键移动 | 障碍物数量: <span id="obstacleCount">0</span></div>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <h2 id="gameOverTitle">游戏结束</h2>
+            <div id="finalScore"></div>
+            <button onclick="restartGame()">再来一次</button>
+            <button onclick="backToMenu()">返回菜单</button>
+            <div id="leaderboard2"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏状态
+        let gameState = 'menu';
+        let playerName = '';
+        let gameTime = 0;
+        let startTime = 0;
+        let animationId = null;
+
+        // 玩家
+        const player = {
+            x: 380,
+            y: 280,
+            width: 20,
+            height: 20,
+            speed: 4,
+            color: '#00ff41',
+            trail: []
+        };
+
+        // 障碍物数组
+        let obstacles = [];
+        let obstacleSpawnRate = 40;
+        let frameCount = 0;
+        let difficultyLevel = 1;
+
+        // 键盘输入
+        const keys = {};
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function createObstacle() {
+            const size = 12 + Math.random() * 8;
+            const edge = Math.floor(Math.random() * 4);
+            let x, y, vx, vy;
+
+            const targetX = player.x + player.width / 2;
+            const targetY = player.y + player.height / 2;
+
+            switch(edge) {
+                case 0:
+                    x = Math.random() * canvas.width;
+                    y = -size - 20;
+                    break;
+                case 1:
+                    x = canvas.width + size + 20;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2:
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + size + 20;
+                    break;
+                case 3:
+                    x = -size - 20;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+
+            const dx = targetX - x + (Math.random() - 0.5) * 100;
+            const dy = targetY - y + (Math.random() - 0.5) * 100;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            const baseSpeed = 2.5 + (difficultyLevel * 0.4);
+            vx = (dx / dist) * baseSpeed;
+            vy = (dy / dist) * baseSpeed;
+
+            return {
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                vx: vx,
+                vy: vy,
+                color: `hsl(${Math.random() * 60}, 100%, 50%)`,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                rotation: 0,
+                intelligence: Math.random() * 0.3 + (difficultyLevel * 0.05),
+                changeDirectionTimer: Math.floor(Math.random() * 15)
+            };
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('playerName');
+            playerName = nameInput.value.trim();
+            
+            if (!playerName) {
+                alert('请输入你的名字！');
+                return;
+            }
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height / 2 - player.height / 2;
+            player.trail = [];
+            obstacles = [];
+            frameCount = 0;
+            gameTime = 0;
+            startTime = Date.now();
+            obstacleSpawnRate = 40;
+            difficultyLevel = 1;
+            gameState = 'playing';
+
+            gameLoop();
+        }
+
+        function updateDifficulty() {
+            const seconds = Math.floor(gameTime);
+            difficultyLevel = Math.floor(seconds / 5) + 1;
+
+            let diffText = '';
+            let diffClass = '';
+            
+            if (difficultyLevel <= 2) {
+                diffText = '简单';
+                diffClass = 'diff-easy';
+            } else if (difficultyLevel <= 4) {
+                diffText = '普通';
+                diffClass = 'diff-normal';
+            } else if (difficultyLevel <= 6) {
+                diffText = '困难';
+                diffClass = 'diff-hard';
+            } else if (difficultyLevel <= 10) {
+                diffText = '专家';
+                diffClass = 'diff-expert';
+            } else {
+                diffText = '地狱 Lv.' + (difficultyLevel - 10);
+                diffClass = 'diff-hell';
+            }
+
+            const diffElement = document.getElementById('diffLevel');
+            diffElement.textContent = diffText;
+            diffElement.className = 'difficulty-indicator ' + diffClass;
+
+            obstacleSpawnRate = Math.max(10, 40 - (difficultyLevel * 2));
+        }
+
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            gameTime = (Date.now() - startTime) / 1000;
+            document.getElementById('timer').textContent = gameTime.toFixed(2) + '秒';
+            
+            updateDifficulty();
+
+            let moving = false;
+            if (keys['ArrowUp'] || keys['w']) {
+                player.y -= player.speed;
+                moving = true;
+            }
+            if (keys['ArrowDown'] || keys['s']) {
+                player.y += player.speed;
+                moving = true;
+            }
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.x -= player.speed;
+                moving = true;
+            }
+            if (keys['ArrowRight'] || keys['d']) {
+                player.x += player.speed;
+                moving = true;
+            }
+
+            player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+            player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+
+            if (moving) {
+                player.trail.push({ x: player.x + player.width/2, y: player.y + player.height/2 });
+                if (player.trail.length > 15) player.trail.shift();
+            }
+
+            for (let i = 0; i < player.trail.length; i++) {
+                const alpha = i / player.trail.length;
+                ctx.fillStyle = `rgba(0, 255, 65, ${alpha * 0.5})`;
+                const size = (player.width / 2) * alpha;
+                ctx.fillRect(player.trail[i].x - size/2, player.trail[i].y - size/2, size, size);
+            }
+
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = player.color;
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+
+            frameCount++;
+            if (frameCount % obstacleSpawnRate === 0) {
+                obstacles.push(createObstacle());
+            }
+
+            document.getElementById('obstacleCount').textContent = obstacles.length;
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                
+                obs.changeDirectionTimer++;
+                if (obs.changeDirectionTimer > 30) {
+                    obs.changeDirectionTimer = 0;
+                    
+                    const dx = (player.x + player.width/2) - (obs.x + obs.width/2);
+                    const dy = (player.y + player.height/2) - (obs.y + obs.height/2);
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist > 0) {
+                        const targetSpeed = 2.0 + difficultyLevel * 0.4;
+                        const targetVx = (dx / dist) * targetSpeed;
+                        const targetVy = (dy / dist) * targetSpeed;
+                        
+                        const trackingStrength = 0.5 + obs.intelligence;
+                        obs.vx = obs.vx * (1 - trackingStrength) + targetVx * trackingStrength;
+                        obs.vy = obs.vy * (1 - trackingStrength) + targetVy * trackingStrength;
+                    }
+                    
+                    obs.vx += (Math.random() - 0.5) * 0.5;
+                    obs.vy += (Math.random() - 0.5) * 0.5;
+                }
+
+                const speed = Math.sqrt(obs.vx * obs.vx + obs.vy * obs.vy);
+                const maxSpeed = 3.5 + difficultyLevel * 0.6;
+                if (speed > maxSpeed) {
+                    obs.vx = (obs.vx / speed) * maxSpeed;
+                    obs.vy = (obs.vy / speed) * maxSpeed;
+                } else if (speed < 1.5) {
+                    obs.vx = (obs.vx / speed) * 1.5;
+                    obs.vy = (obs.vy / speed) * 1.5;
+                }
+
+                obs.x += obs.vx;
+                obs.y += obs.vy;
+                obs.rotation += obs.rotationSpeed;
+
+                if (obs.x < -200 || obs.x > canvas.width + 200 || 
+                    obs.y < -200 || obs.y > canvas.height + 200) {
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(obs.x + obs.width/2, obs.y + obs.height/2);
+                ctx.rotate(obs.rotation);
+                
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = obs.color;
+                ctx.fillStyle = obs.color;
+                ctx.fillRect(-obs.width/2, -obs.height/2, obs.width, obs.height);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(-obs.width/2, -obs.height/2, obs.width, obs.height);
+                
+                ctx.restore();
+                ctx.shadowBlur = 0;
+
+                if (checkCollision(player, obs)) {
+                    endGame(false);
+                    return;
+                }
+            }
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function endGame(manual) {
+            gameState = 'gameOver';
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            const score = parseFloat(gameTime.toFixed(2));
+            saveScore(playerName, score);
+
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+
+            const title = document.getElementById('gameOverTitle');
+            const finalScore = document.getElementById('finalScore');
+
+            if (score >= 60) {
+                title.textContent = '👑 传说降临！无人能敌！ 👑';
+                title.className = 'legendary';
+                finalScore.textContent = `你坚持了 ${score} 秒！你已是神！`;
+                finalScore.className = 'legendary';
+            } else if (score >= 45) {
+                title.textContent = '🔥 超级强者！令人敬畏！ 🔥';
+                title.style.color = '#ff6b35';
+                finalScore.textContent = `你坚持了 ${score} 秒！太强了！`;
+                finalScore.style.color = '#ff6b35';
+            } else if (score >= 30) {
+                title.textContent = '🎉 恭喜通过基础挑战！ 🎉';
+                title.className = 'success';
+                finalScore.textContent = `你坚持了 ${score} 秒！你是真男人！`;
+                finalScore.className = 'success';
+            } else if (score >= 20) {
+                title.textContent = '💪 不错的尝试！';
+                title.style.color = '#ffc107';
+                finalScore.textContent = `你坚持了 ${score} 秒，快要达成目标了！`;
+                finalScore.style.color = '#ffc107';
+            } else {
+                title.textContent = '💥 游戏结束 💥';
+                title.style.color = '#f44336';
+                finalScore.textContent = `你坚持了 ${score} 秒，继续加油！`;
+                finalScore.style.color = '#f44336';
+            }
+
+            updateLeaderboard('leaderboard2');
+        }
+
+        function saveScore(name, score) {
+            let scores = JSON.parse(localStorage.getItem('gameScoresV2') || '[]');
+            
+            const existingIndex = scores.findIndex(s => s.name === name);
+            
+            if (existingIndex !== -1) {
+                if (score > scores[existingIndex].score) {
+                    scores[existingIndex].score = score;
+                    scores[existingIndex].date = new Date().toLocaleDateString();
+                }
+            } else {
+                scores.push({
+                    name: name,
+                    score: score,
+                    date: new Date().toLocaleDateString()
+                });
+            }
+
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 10);
+
+            localStorage.setItem('gameScoresV2', JSON.stringify(scores));
+        }
+
+        function updateLeaderboard(elementId) {
+            const scores = JSON.parse(localStorage.getItem('gameScoresV2') || '[]');
+            const leaderboard = document.getElementById(elementId);
+
+            if (scores.length === 0) {
+                leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 本地排行榜</h3><p style="text-align:center; color:#999;">暂无记录</p></div>';
+                return;
+            }
+
+            let html = '<div id="leaderboard"><h3>🏆 本地排行榜 Top 10</h3>';
+            
+            scores.forEach((score, index) => {
+                let medal = '';
+                if (index === 0) medal = '🥇';
+                else if (index === 1) medal = '🥈';
+                else if (index === 2) medal = '🥉';
+
+                let badge = '';
+                if (score.score >= 60) badge = ' 👑';
+                else if (score.score >= 45) badge = ' 🔥';
+                else if (score.score >= 30) badge = ' ✅';
+
+                html += `
+                    <div class="leaderboard-item">
+                        <span class="rank">${medal} #${index + 1}</span>
+                        <span class="player-name">${score.name}</span>
+                        <span class="score">${score.score.toFixed(2)}秒${badge}</span>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            leaderboard.innerHTML = html;
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function backToMenu() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            updateLeaderboard('leaderboard');
+        }
+
+        updateLeaderboard('leaderboard');
+    </script>
+</body>
+</html>
