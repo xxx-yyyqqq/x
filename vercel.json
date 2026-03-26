@@ -1,9 +1,8 @@
 {
-  "version": 2,
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/scores"
+  "functions": {
+    "api/scores.js": {
+      "memory": 1024,
+      "maxDuration": 10
     }
-  ]
+  }
 }
