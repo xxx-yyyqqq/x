@@ -244,11 +244,10 @@
     </div>
 
     <script>
-        // ========== 在线API配置 ==========
-        // 本地测试时使用：
-        // const API_BASE_URL = 'http://localhost:3000/api';
-        // 部署到云端后，修改为你的域名：
-        const API_BASE_URL = 'https://x-green-nu.vercel.app/api';
+        // ========== JSONBin.io 配置 ==========
+        const JSONBIN_BIN_ID = '69c53aedaa77b81da920a10f';
+        const JSONBIN_API_KEY = '$2a$10$tISDrlV2/tu1h0B23.1gT.m7tWPbGnarMxxlV2akMr8vY0yORzfkO';
+        const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
         
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -632,7 +631,7 @@
             updateLeaderboard('leaderboard2');
         }
 
-        // 保存成绩到在线服务器
+        // 保存成绩到JSONBin.io
         async function saveScore(name, score) {
             try {
                 // 先保存到本地（作为备份）
@@ -648,42 +647,87 @@
                 }
                 localStorage.setItem('gameScoresV2', JSON.stringify(localScores));
 
-                // 提交到在线服务器
-                const response = await fetch(`${API_BASE_URL}/scores`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, score })
+                // 获取现有数据
+                const getResponse = await fetch(JSONBIN_API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
+                    }
                 });
 
-                const result = await response.json();
-                if (result.success) {
-                    console.log('✅ 分数已上传到服务器');
+                let scores = [];
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    scores = data.record || [];
+                }
+
+                // 更新或添加分数
+                const existingIdx = scores.findIndex(s => s.name === name);
+                if (existingIdx !== -1) {
+                    if (score > scores[existingIdx].score) {
+                        scores[existingIdx].score = score;
+                        scores[existingIdx].date = new Date().toISOString();
+                    }
                 } else {
-                    console.warn('⚠️ 服务器响应:', result.error || '未知错误');
+                    scores.push({
+                        name: name,
+                        score: score,
+                        date: new Date().toISOString()
+                    });
+                }
+
+                // 保存到JSONBin
+                const putResponse = await fetch(JSONBIN_API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify(scores)
+                });
+
+                if (putResponse.ok) {
+                    console.log('✅ 分数已上传到在线排行榜');
+                } else {
+                    console.warn('⚠️ 上传失败');
                 }
             } catch (error) {
                 console.error('❌ 网络错误，已保存到本地:', error.message);
             }
         }
 
-        // 更新排行榜（从在线服务器获取）
+        // 更新排行榜（从JSONBin.io获取）
         async function updateLeaderboard(elementId) {
             const leaderboard = document.getElementById(elementId);
             
             try {
-                // 从服务器获取排行榜
-                const response = await fetch(`${API_BASE_URL}/scores`);
-                const result = await response.json();
+                // 从JSONBin获取排行榜
+                const response = await fetch(JSONBIN_API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
+                    }
+                });
 
-                if (!result.success || result.scores.length === 0) {
-                    leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 在线排行榜</h3><p style="text-align:center; color:#999;">暂无记录</p></div>';
+                if (!response.ok) {
+                    throw new Error('获取排行榜失败');
+                }
+
+                const data = await response.json();
+                let scores = data.record || [];
+
+                if (scores.length === 0) {
+                    leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 全球排行榜</h3><p style="text-align:center; color:#999;">暂无记录，你将是第一名！</p></div>';
                     return;
                 }
 
-                const scores = result.scores;
-                let html = '<div id="leaderboard"><h3>🏆 在线排行榜 Top 10</h3>';
+                // 排序并取前10名
+                scores.sort((a, b) => b.score - a.score);
+                const top10 = scores.slice(0, 10);
+
+                let html = '<div id="leaderboard"><h3>🏆 全球排行榜 Top 10</h3>';
                 
-                scores.forEach((score, index) => {
+                top10.forEach((score, index) => {
                     let medal = '';
                     if (index === 0) medal = '🥇';
                     else if (index === 1) medal = '🥈';
@@ -705,6 +749,7 @@
 
                 html += '</div>';
                 leaderboard.innerHTML = html;
+                console.log('✅ 排行榜已更新（全球数据）');
                 
             } catch (error) {
                 console.error('❌ 无法加载在线排行榜:', error);
@@ -716,7 +761,7 @@
                     
                 if (localScores.length > 0) {
                     let html = '<div id="leaderboard"><h3>🏆 本地排行榜</h3>';
-                    html += '<p style="color:#ff9800; font-size:12px; text-align:center;">⚠️ 服务器离线，显示本地数据</p>';
+                    html += '<p style="color:#ff9800; font-size:12px; text-align:center;">⚠️ 网络离线，显示本地数据</p>';
                     
                     localScores.forEach((score, index) => {
                         let medal = '';
@@ -740,7 +785,7 @@
                     html += '</div>';
                     leaderboard.innerHTML = html;
                 } else {
-                    leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 排行榜</h3><p style="text-align:center; color:#999;">⚠️ 无法连接到服务器</p></div>';
+                    leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 本地排行榜</h3><p style="text-align:center; color:#999;">暂无记录</p></div>';
                 }
             }
         }
