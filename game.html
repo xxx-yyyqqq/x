@@ -658,7 +658,7 @@
                 let scores = [];
                 if (getResponse.ok) {
                     const data = await getResponse.json();
-                    scores = data.record || [];
+                    scores = data.record.scores || [];
                 }
 
                 // 更新或添加分数
@@ -683,7 +683,7 @@
                         'Content-Type': 'application/json',
                         'X-Master-Key': JSONBIN_API_KEY
                     },
-                    body: JSON.stringify(scores)
+                    body: JSON.stringify({scores: scores})
                 });
 
                 if (putResponse.ok) {
@@ -714,7 +714,7 @@
                 }
 
                 const data = await response.json();
-                let scores = data.record || [];
+                let scores = data.record.scores || [];
 
                 if (scores.length === 0) {
                     leaderboard.innerHTML = '<div id="leaderboard"><h3>🏆 全球排行榜</h3><p style="text-align:center; color:#999;">暂无记录，你将是第一名！</p></div>';
