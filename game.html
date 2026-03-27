@@ -278,6 +278,11 @@
 
         // 键盘输入
         const keys = {};
+        
+        // ========== 页面可见性检测（防止后台刷分） ==========
+        let isPaused = false;
+        let pauseTime = 0;
+        let totalPauseTime = 0;
 
         // 事件监听
         document.addEventListener('keydown', (e) => {
@@ -289,6 +294,55 @@
             keys[e.key] = false;
             keys[e.key.toLowerCase()] = false;
         });
+
+        // 页面可见性变化监听
+        document.addEventListener('visibilitychange', () => {
+            if (gameState !== 'playing') return;
+            
+            if (document.hidden) {
+                // 页面切到后台 - 暂停游戏
+                isPaused = true;
+                pauseTime = Date.now();
+                console.log('⏸️ 游戏已暂停（标签页切到后台）');
+            } else {
+                // 页面切回前台 - 恢复游戏
+                if (isPaused) {
+                    isPaused = false;
+                    const pauseDuration = Date.now() - pauseTime;
+                    totalPauseTime += pauseDuration;
+                    console.log(`▶️ 游戏已恢复（暂停了 ${(pauseDuration/1000).toFixed(1)}秒）`);
+                    
+                    // 显示提示
+                    showPauseNotice();
+                }
+            }
+        });
+
+        // 显示暂停恢复提示
+        function showPauseNotice() {
+            const notice = document.createElement('div');
+            notice.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 152, 0, 0.95);
+                color: white;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 10000;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            `;
+            notice.textContent = '⚠️ 游戏已恢复！';
+            document.body.appendChild(notice);
+            
+            // 2秒后自动消失
+            setTimeout(() => {
+                notice.remove();
+            }, 2000);
+        }
 
         // 创建智能障碍物
         function createObstacle() {
@@ -369,6 +423,11 @@
             obstacleSpawnRate = 40;
             difficultyLevel = 1;
             gameState = 'playing';
+            
+            // 重置暂停状态
+            isPaused = false;
+            pauseTime = 0;
+            totalPauseTime = 0;
 
             // 开始游戏循环
             gameLoop();
@@ -411,6 +470,13 @@
         function gameLoop() {
             if (gameState !== 'playing') return;
 
+            // ========== 检查是否暂停（后台标签页） ==========
+            if (isPaused) {
+                // 暂停时只绘制静止画面，不更新游戏逻辑
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
             // 清空画布
             ctx.fillStyle = '#0a0e27';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -431,8 +497,8 @@
                 ctx.stroke();
             }
 
-            // 更新游戏时间
-            gameTime = (Date.now() - startTime) / 1000;
+            // 更新游戏时间（排除暂停时间）
+            gameTime = (Date.now() - startTime - totalPauseTime) / 1000;
             document.getElementById('timer').textContent = gameTime.toFixed(2) + '秒';
             
             // 更新难度
